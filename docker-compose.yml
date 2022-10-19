@@ -4,13 +4,15 @@ services:
   api:
     container_name: api
     build:
-      context: ./backend/api
+      context: backend/api
       dockerfile: Dockerfile
       target: development
+    command: yarn start:dev
     ports:
       - '4000:4000'
     volumes:
-      - ./backend/api/:/app
+      - ./backend/api/:/usr/src/app/
+      - /usr/src/app/node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -21,6 +23,7 @@ services:
       context: ./frontend/web
       dockerfile: Dockerfile
       target: development
+    command: yarn dev
     ports:
       - '3000:3000'
     depends_on:
@@ -28,7 +31,8 @@ services:
     networks:
       - web
     volumes:
-      - ./frontend/web/:/app
+      - ./frontend/web/:/usr/src/web
+      - /usr/src/web/node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"
   proxy:

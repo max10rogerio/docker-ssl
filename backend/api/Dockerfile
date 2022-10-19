@@ -1,28 +1,16 @@
-FROM node:16-alpine As deps
-
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-COPY --chown=node:node package.json yarn.lock* ./
-
-RUN yarn --frozen-lockfile
-
 FROM node:16-alpine As development
 
-# Create app directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-ENV NODE_ENV development
+#RUN apk add --no-cache libc6-compat
 
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY package.json yarn.lock ./
 
-# Bundle app source
-COPY --chown=node:node . .
+RUN yarn install --frozen-lockfile
 
-# Use the node user from the image (instead of the root user)
-USER node
+# USER node
 
-CMD [ "yarn", "start:dev" ]
+COPY . .
 
 ###################
 # BUILD FOR PRODUCTION
@@ -30,11 +18,11 @@ CMD [ "yarn", "start:dev" ]
 
 FROM node:16-alpine As build
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY --chown=node:node package*.json ./
-COPY --chown=node:node --from=deps /app/node_modules ./node_modules
-COPY --chown=node:node . .
+COPY package*.json ./
+COPY --from=development /usr/src/app/node_modules ./node_modules
+COPY . .
 
 # Run the build command which creates the production bundle
 RUN yarn build
@@ -54,8 +42,8 @@ USER node
 FROM node:16-alpine As production
 
 # Copy the bundled code from the build stage to the production image
-COPY --chown=node:node --from=build /app/node_modules ./node_modules
-COPY --chown=node:node --from=build /app/dist ./dist
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/dist ./dist
 
 ENV NODE_ENV production
 
